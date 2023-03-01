@@ -1,37 +1,48 @@
 #include "detector.h"
 
 YOLODetector::YOLODetector(const std::string& modelPath,
-                           const bool& isGPU = true,
+                           bool isGPU = true,
                            const cv::Size& inputSize = cv::Size(640, 640))
 {
     env = Ort::Env(OrtLoggingLevel::ORT_LOGGING_LEVEL_WARNING, "ONNX_DETECTION");
-    sessionOptions = Ort::SessionOptions();
 
     std::vector<std::string> availableProviders = Ort::GetAvailableProviders();
     auto cudaAvailable = std::find(availableProviders.begin(), availableProviders.end(), "CUDAExecutionProvider");
-    OrtCUDAProviderOptions cudaOption;
 
     if (isGPU && (cudaAvailable == availableProviders.end()))
     {
-        std::cout << "GPU is not supported by your ONNXRuntime build. Fallback to CPU." << std::endl;
-        std::cout << "Inference device: CPU" << std::endl;
-    }
-    else if (isGPU && (cudaAvailable != availableProviders.end()))
-    {
-        std::cout << "Inference device: GPU" << std::endl;
-        sessionOptions.AppendExecutionProvider_CUDA(cudaOption);
-    }
-    else
-    {
-        std::cout << "Inference device: CPU" << std::endl;
+        std::cout << "CUDA is not supported by your ONNXRuntime build. Fallback to CPU." << std::endl;
+        isGPU = false;
     }
 
+    while(true) {
+        try {
+            sessionOptions = Ort::SessionOptions();
+            OrtCUDAProviderOptions cudaOption;
+            if(isGPU)
+                sessionOptions.AppendExecutionProvider_CUDA(cudaOption);
 #ifdef _WIN32
-    std::wstring w_modelPath = utils::charToWstring(modelPath.c_str());
-    session = Ort::Session(env, w_modelPath.c_str(), sessionOptions);
+            std::wstring w_modelPath = utils::charToWstring(modelPath.c_str());
+            session = Ort::Session(env, w_modelPath.c_str(), sessionOptions);
 #else
-    session = Ort::Session(env, modelPath.c_str(), sessionOptions);
+            session = Ort::Session(env, modelPath.c_str(), sessionOptions);
 #endif
+            if(isGPU)
+                std::cout << "Inference device: GPU" << std::endl;
+            else
+                std::cout << "Inference device: CPU" << std::endl;
+            break;
+        } catch(const std::exception& e) {
+            if(isGPU) {
+                std::cout << e.what();
+                std::cout << "Error creating GPU (CUDA) session. Falling back to CPU." << std::endl;
+                isGPU = false;
+            } else {
+                std::cerr << "Failed to set up ONNX Runtime session: " << e.what() << std::endl;
+                exit(-1);
+            }
+        }
+    }
 
     Ort::AllocatorWithDefaultOptions allocator;
 

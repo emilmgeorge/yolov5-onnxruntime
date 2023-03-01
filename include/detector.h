@@ -11,7 +11,7 @@ class YOLODetector
 public:
     explicit YOLODetector(std::nullptr_t) {};
     YOLODetector(const std::string& modelPath,
-                 const bool& isGPU,
+                 bool isGPU,
                  const cv::Size& inputSize);
 
     std::vector<Detection> detect(cv::Mat &image, const float& confThreshold, const float& iouThreshold);
