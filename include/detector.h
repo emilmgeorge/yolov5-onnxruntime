@@ -30,8 +30,10 @@ private:
     static void getBestClassInfo(std::vector<float>::iterator it, const int& numClasses,
                                  float& bestConf, int& bestClassId);
 
-    std::vector<const char*> inputNames;
-    std::vector<const char*> outputNames;
+    std::vector<Ort::AllocatedStringPtr> inputNameAllocated;
+    std::vector<Ort::AllocatedStringPtr> outputNameAllocated;
+    const char* inputName;
+    const char* outputName;
     bool isDynamicInputShape{};
     cv::Size2f inputImageShape;
 

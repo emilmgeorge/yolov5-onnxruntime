@@ -48,11 +48,13 @@ YOLODetector::YOLODetector(const std::string& modelPath,
     for (auto shape : inputTensorShape)
         std::cout << "Input shape: " << shape << std::endl;
 
-    inputNames.push_back(session.GetInputName(0, allocator));
-    outputNames.push_back(session.GetOutputName(0, allocator));
+    inputNameAllocated.emplace_back(std::move(session.GetInputNameAllocated(0, allocator)));
+    outputNameAllocated.emplace_back(std::move(session.GetOutputNameAllocated(0, allocator)));
+    inputName = inputNameAllocated.back().get();
+    outputName = outputNameAllocated.back().get();
 
-    std::cout << "Input name: " << inputNames[0] << std::endl;
-    std::cout << "Output name: " << outputNames[0] << std::endl;
+    std::cout << "Input name: " << inputName << std::endl;
+    std::cout << "Output name: " << outputName << std::endl;
 
     this->inputImageShape = cv::Size2f(inputSize);
 }
@@ -188,10 +190,10 @@ std::vector<Detection> YOLODetector::detect(cv::Mat &image, const float& confThr
     ));
 
     std::vector<Ort::Value> outputTensors = this->session.Run(Ort::RunOptions{nullptr},
-                                                              inputNames.data(),
+                                                              &inputName,
                                                               inputTensors.data(),
                                                               1,
-                                                              outputNames.data(),
+                                                              &outputName,
                                                               1);
 
     cv::Size resizedShape = cv::Size((int)inputTensorShape[3], (int)inputTensorShape[2]);
