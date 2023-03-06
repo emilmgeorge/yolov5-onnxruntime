@@ -10,6 +10,7 @@ int main(int argc, char* argv[])
 {
     const float confThreshold = 0.3f;
     const float iouThreshold = 0.4f;
+    const char windowName[] = "result";
     constexpr double avgalpha = 0.1;
 
     cmdline::parser cmd;
@@ -18,10 +19,12 @@ int main(int argc, char* argv[])
     cmd.add<std::string>("video", 'v', "Video/webcam source to be detected.", false);
     cmd.add<std::string>("class_names", 'c', "Path to class names file.", true, "coco.names");
     cmd.add("gpu", '\0', "Inference on cuda device.");
+    cmd.add("fullscreen", '\0', "Display fullscreen.");
 
     cmd.parse_check(argc, argv);
 
     bool isGPU = cmd.exist("gpu");
+    bool isFullScreen = cmd.exist("fullscreen");
     bool isImage = cmd.exist("image");
     bool isVideo = cmd.exist("video");
     const std::string classNamesPath = cmd.get<std::string>("class_names");
@@ -31,6 +34,7 @@ int main(int argc, char* argv[])
     const std::string modelPath = cmd.get<std::string>("model_path");
 
     double avgduration = 0;
+    bool windowCreated = false;
 
     if(!isImage && !isVideo) {
         std::cerr << "Either the --image or the --video argument has to be specified." << std::endl;
@@ -90,7 +94,13 @@ int main(int argc, char* argv[])
 
         utils::visualizeDetection(image, result, classNames);
 
-        cv::imshow("result", image);
+
+        if(!windowCreated) {
+            cv::namedWindow(windowName, 0);
+            if(isFullScreen)
+                cv::setWindowProperty(windowName, cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
+        }
+        cv::imshow(windowName, image);
         auto finish = std::chrono::steady_clock::now();
 
         auto key = cv::waitKey(isVideo) & 0xFF;
